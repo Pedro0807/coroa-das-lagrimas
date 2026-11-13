@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#14213d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<title>Coroa das Lágrimas</title>
+<style>
+  :root{
+    --bg:#14213d; --bg2:#1d2f55; --fg:#f5f1e8; --muted:#a9b4cc;
+    --accent:#e0b3c6; --bead:#3a4d7d; --bead-on:#e0b3c6; --big:#c9577f;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
+    font-family:Georgia,"Times New Roman",serif;overflow:hidden}
+  #app{height:100dvh;display:flex;flex-direction:column;
+    padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+    background:radial-gradient(ellipse at 50% 30%,var(--bg2),var(--bg) 70%);cursor:pointer}
+  header{padding:14px 0 6px;text-align:center}
+  .section{font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+  .sub{font-size:14px;color:var(--muted);margin-top:2px}
+  .beads{display:flex;justify-content:center;align-items:center;gap:7px;margin-top:12px;min-height:24px;flex-wrap:wrap}
+  .b{width:16px;height:16px;border-radius:50%;background:var(--bead);transition:all .2s}
+  .b.big{width:22px;height:22px;background:#5b3a56}
+  .b.done{background:var(--bead-on);opacity:.55}
+  .b.big.done{background:var(--big)}
+  .b.cur{background:var(--bead-on);opacity:1;transform:scale(1.35);box-shadow:0 0 12px var(--accent)}
+  .b.big.cur{background:var(--big);box-shadow:0 0 14px var(--big)}
+  main{flex:1;overflow-y:auto;display:flex;flex-direction:column;justify-content:center;
+    padding:12px 4px;text-align:center;-webkit-overflow-scrolling:touch}
+  main>div{margin:auto 0}
+  .label{font-size:15px;color:var(--accent);margin-bottom:14px;font-style:italic}
+  .prayer{line-height:1.5;font-size:var(--fs,26px)}
+  .extra{margin-top:16px;font-size:calc(var(--fs,26px)*.85);color:var(--muted);line-height:1.45}
+  .count{font-size:64px;font-weight:bold;color:var(--accent);margin-top:14px;line-height:1}
+  footer{display:flex;justify-content:space-between;align-items:center;padding:10px 0 14px;gap:8px}
+  footer button{background:rgba(255,255,255,.08);color:var(--fg);border:1px solid rgba(255,255,255,.18);
+    border-radius:12px;padding:12px 16px;font-size:15px;font-family:inherit;min-width:84px}
+  footer button:active{background:rgba(255,255,255,.2)}
+  .hint{font-size:13px;color:var(--muted);text-align:center;flex:1}
+  .progress{height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+  .progress i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="progress"><i id="bar"></i></div>
+  <header>
+    <div class="section" id="section"></div>
+    <div class="sub" id="sub"></div>
+    <div class="beads" id="beads"></div>
+  </header>
+  <main id="main"><div id="content"></div></main>
+  <footer>
+    <button id="back" aria-label="Voltar">◀ Voltar</button>
+    <div class="hint">Toque na tela para avançar</div>
+    <button id="menu" aria-label="Menu">⋯</button>
+  </footer>
+</div>
+
+<script>
+const INICIAL = "Eis-nos aqui aos Vossos pés, ó dulcíssimo Jesus Crucificado, para Vos oferecermos as lágrimas d’Aquela que, com tanto amor, Vos acompanhou no caminho doloroso do Calvário. Fazei, ó bom Mestre, que nós saibamos aproveitar da lição que elas nos dão, para que, na Terra, realizando a Vossa Santíssima Vontade, possamos um dia, no Céu, Vos louvar por toda a eternidade.";
+const GRANDE = "Vêde, ó Jesus, que são as lágrimas d’Aquela que mais Vos amou na Terra, e que mais Vos ama no Céu.";
+const PEQUENA = "Meu Jesus, ouvi os nossos rogos, pelas Lágrimas de Vossa Mãe Santíssima.";
+const FINAL = "Virgem Santíssima e Mãe das Dores, nós Vos pedimos que junteis os Vossos rogos aos nossos, a fim de que Jesus, Vosso Divino Filho, a quem nos dirigimos em nome das Vossas lágrimas de Mãe, ouça as nossas preces e nos conceda, com as graças que desejamos, a coroa da vida eterna. Amém.";
+const FINAL_EXTRA = ["– Por Vossa mansidão divina, ó Jesus Manietado, salvai o mundo do erro que o ameaça!",
+                     "– Ó Virgem Dolorosíssima, as Vossas Lágrimas derrubaram o império infernal!"];
+
+// Monta a sequência de passos
+const steps = [];
+steps.push({sec:"Oração inicial", sub:"No crucifixo", text:INICIAL, dots:null});
+for(let g=1; g<=7; g++){
+  steps.push({sec:`Grupo ${g} de 7`, sub:"Conta maior", text:GRANDE, group:g, idx:0});
+  for(let i=1; i<=7; i++)
+    steps.push({sec:`Grupo ${g} de 7`, sub:"Contas pequenas", text:PEQUENA, group:g, idx:i, count:i});
+}
+for(let i=1; i<=3; i++)
+  steps.push({sec:"Contas finais", sub:`Conta branca ${i} de 3`, text:GRANDE, fin:i, count:i, of:3});
+steps.push({sec:"Oração final", sub:"Ao terminar", text:FINAL, extra:FINAL_EXTRA, end:true});
+
+const $ = id => document.getElementById(id);
+let pos = 0;
+try{ const s = parseInt(localStorage.getItem("coroa_pos")); if(s>=0 && s<steps.length) pos = s; }catch(e){}
+
+function dots(n, cur, bigFirst){
+  const el = $("beads"); el.innerHTML = "";
+  for(let i=0;i<n;i++){
+    const d = document.createElement("span");
+    d.className = "b" + (bigFirst && i===0 ? " big" : "");
+    if(i<cur) d.classList.add("done");
+    if(i===cur) d.classList.add("cur");
+    el.appendChild(d);
+  }
+}
+
+function fit(len){
+  const fs = len>300 ? 20 : len>150 ? 23 : 27;
+  document.documentElement.style.setProperty("--fs", fs+"px");
+}
+
+function render(){
+  const s = steps[pos];
+  $("section").textContent = s.sec;
+  $("sub").textContent = s.sub;
+  if(s.group){ dots(8, s.idx, true); }
+  else if(s.fin){ dots(3, s.fin-1, false); }
+  else { $("beads").innerHTML = ""; }
+  fit(s.text.length);
+  let html = "";
+  if(s.group && s.idx>0) html += `<div class="label">Conta ${s.idx} de 7</div>`;
+  else if(s.group) html += `<div class="label">Conta maior</div>`;
+  html += `<div class="prayer">${s.text}</div>`;
+  if(s.extra) html += s.extra.map(t=>`<div class="extra">${t}</div>`).join("");
+  if(s.count) html += `<div class="count">${s.count}${s.of?` / ${s.of}`:" / 7"}</div>`;
+  $("content").innerHTML = html;
+  $("main").scrollTop = 0;
+  $("bar").style.width = (pos/(steps.length-1)*100)+"%";
+  $("back").style.visibility = pos===0 ? "hidden" : "visible";
+  try{ localStorage.setItem("coroa_pos", pos); }catch(e){}
+}
+
+function buzz(ms){ try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} }
+
+function next(){
+  if(pos < steps.length-1){ pos++; render(); buzz(pos>0 && steps[pos].sub==="Conta maior" ? 40 : 15); }
+  else { buzz([60,60,60]); }
+}
+function prev(){ if(pos>0){ pos--; render(); buzz(10); } }
+
+$("app").addEventListener("click", e => {
+  if(e.target.closest("button")) return;
+  next();
+});
+$("back").addEventListener("click", e => { e.stopPropagation(); prev(); });
+$("menu").addEventListener("click", e => {
+  e.stopPropagation();
+  if(confirm("Recomeçar a oração do início?")){ pos = 0; render(); }
+});
+document.addEventListener("keydown", e => {
+  if(e.key==="ArrowRight"||e.key===" "||e.key==="Enter"){ e.preventDefault(); next(); }
+  if(e.key==="ArrowLeft"){ prev(); }
+});
+
+// Mantém a tela acesa durante a oração
+let lock = null;
+async function wake(){ try{ if("wakeLock" in navigator) lock = await navigator.wakeLock.request("screen"); }catch(e){} }
+document.addEventListener("visibilitychange", () => { if(document.visibilityState==="visible") wake(); });
+document.addEventListener("click", wake, {once:true});
+wake();
+
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+render();
+</script>
+</body>
+</html>
